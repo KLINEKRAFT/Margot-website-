@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+<title>Margot's Birthday Countdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* Desktop layer assets */
+    --img-d-sun:        url('layer-2-sun-clouds.png');
+    --img-d-midhills:   url('layer-3-midhills.png');
+    --img-d-midfront:   url('layer-4-midhill-front.png');
+    --img-d-margot:     url('layer-5-margot.png');
+    --img-d-foreground: url('layer-6-foreground.png');
+
+    /* Phone layer assets (portrait-specific composition) */
+    --img-p-sun:        url('phone-layer-2-sun-clouds.png');
+    --img-p-midhills:   url('phone-layer-3-midhills.png');
+    --img-p-midfront:   url('phone-layer-4-midhill-front.png');
+    --img-p-margot:     url('phone-layer-5-margot.png');
+    --img-p-foreground: url('phone-layer-6-foreground.png');
+
+    --ink: #6b5a7a;
+    --ink-soft: rgba(107, 90, 122, 0.7);
+    --ink-faint: rgba(107, 90, 122, 0.5);
+    --cream: #f5ead8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--cream);
+    font-family: 'Cormorant Garamond', serif;
+    color: var(--ink);
+  }
+
+  /* ---------- Two scenes ----------
+     `.scene-desktop` shows on landscape / wide aspect (>= 1:1 aspect ratio).
+     `.scene-phone`   shows on portrait / tall aspect (< 1:1 aspect ratio).
+     Each is a complete layered composition designed for that orientation. */
+
+  .scene {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    container-type: inline-size;
+  }
+
+  /* Default: show desktop, hide phone */
+  .scene-phone   { display: none; }
+  .scene-desktop { display: block; }
+
+  /* Switch to phone scene on portrait */
+  @media (max-aspect-ratio: 1/1) {
+    .scene-desktop { display: none; }
+    .scene-phone   { display: block; }
+  }
+
+  /* ============================================================
+     DESKTOP SCENE (16:9 landscape composition)
+     ============================================================ */
+
+  .scene-desktop .layer {
+    position: absolute;
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    background-size: 100% 100%;
+    pointer-events: none;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+  }
+
+  /* Layers sized so on 16:9 viewport, full width fits naturally.
+     On ultrawide, capped so composition doesn't stretch beyond design. */
+  .scene-desktop .layer-d-sun {
+    width: clamp(100vw, calc(100vh * 1920 / 1053), calc(177vh));
+    aspect-ratio: 1920 / 1053;
+    background-image: var(--img-d-sun);
+    z-index: 2;
+  }
+  .scene-desktop .layer-d-midhills {
+    width: clamp(100vw, calc(60vh * 1920 / 663), calc(177vh));
+    aspect-ratio: 1920 / 663;
+    background-image: var(--img-d-midhills);
+    z-index: 4;
+  }
+  .scene-desktop .layer-d-midfront {
+    width: clamp(100vw, calc(36vh * 1920 / 386), calc(177vh));
+    aspect-ratio: 1920 / 386;
+    background-image: var(--img-d-midfront);
+    z-index: 5;
+  }
+  .scene-desktop .layer-d-foreground {
+    width: clamp(100vw, calc(45vh * 1920 / 988), calc(177vh));
+    aspect-ratio: 1920 / 988;
+    background-image: var(--img-d-foreground);
+    z-index: 7;
+  }
+
+  .scene-desktop .margot-d {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    /* Width = 24% of the (potentially boosted) composition width */
+    width: clamp(24vw, calc(60vh * 1920 / 663 * 0.24), calc(177vh * 0.24));
+    aspect-ratio: 732 / 1034;
+    bottom: clamp(calc(100vw * 0.515 * 0.06), calc(45vh * 0.06), calc(177vh * 0.515 * 0.06));
+    z-index: 6;
+    pointer-events: none;
+    background-image: var(--img-d-margot);
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    background-size: contain;
+    filter: drop-shadow(0 14px 24px rgba(90, 74, 107, 0.18));
+  }
+
+  /* ============================================================
+     PHONE SCENE (9:19.5 portrait composition)
+     ============================================================ */
+
+  .scene-phone .layer {
+    position: absolute;
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    background-size: 100% 100%;
+    pointer-events: none;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+  }
+
+  /* Phone images natural ratios (h/w):
+       sun:        1119/1292 = 0.866
+       midhills:    671/1292 = 0.519
+       midfront:    466/1292 = 0.361
+       foreground:  815/1292 = 0.631
+     
+     Strategy: scale by viewport HEIGHT so composition fills bottom portion
+     of the viewport meaningfully. Width may extend past viewport edges,
+     getting cropped — that's OK since florals extend off-design anyway.
+     Cap at a reasonable max width to avoid wasteful overflow. */
+
+  .scene-phone .layer-p-sun {
+    /* Sun at 65vh tall → width = 65vh × 1292/1119 = 75vh */
+    height: 65vh;
+    width: calc(65vh * 1292 / 1119);
+    max-width: 130vw;
+    min-width: 100vw;
+    background-image: var(--img-p-sun);
+    z-index: 2;
+  }
+  .scene-phone .layer-p-midhills {
+    height: calc(65vh * 671 / 1119);
+    width: calc(65vh * 1292 / 1119);
+    max-width: 130vw;
+    min-width: 100vw;
+    background-image: var(--img-p-midhills);
+    z-index: 4;
+  }
+  .scene-phone .layer-p-midfront {
+    height: calc(65vh * 466 / 1119);
+    width: calc(65vh * 1292 / 1119);
+    max-width: 130vw;
+    min-width: 100vw;
+    background-image: var(--img-p-midfront);
+    z-index: 5;
+  }
+  .scene-phone .layer-p-foreground {
+    height: calc(65vh * 815 / 1119);
+    width: calc(65vh * 1292 / 1119);
+    max-width: 130vw;
+    min-width: 100vw;
+    background-image: var(--img-p-foreground);
+    z-index: 7;
+  }
+
+  /* Margot — sized relative to the same 65vh scale */
+  .scene-phone .margot-p {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    height: calc(65vh * 921 / 1119);
+    width: calc(65vh * 643 / 1119);
+    max-width: 65vw;
+    bottom: 8vh;
+    z-index: 6;
+    pointer-events: none;
+    background-image: var(--img-p-margot);
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    background-size: contain;
+    filter: drop-shadow(0 12px 20px rgba(90, 74, 107, 0.18));
+  }
+
+  /* ============================================================
+     HEADING + COUNTDOWN (positioned within whichever scene is visible)
+     ============================================================ */
+
+  .heading {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--ink);
+    text-align: center;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    /* Default (desktop) sizing */
+    top: clamp(20px, 5cqw, 60px);
+    font-size: clamp(15px, 2.4cqw, 34px);
+    letter-spacing: 0.2em;
+  }
+
+  .heading::after {
+    content: '✦';
+    display: block;
+    margin-top: 6px;
+    font-size: 0.55em;
+    font-style: normal;
+    opacity: 0.45;
+    letter-spacing: 0;
+  }
+
+  .countdown {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: clamp(6px, 1.4cqw, 18px);
+    pointer-events: none;
+    user-select: none;
+    /* Default (desktop) positioning */
+    top: clamp(70px, 12cqw, 150px);
+    width: min(78cqw, 1080px);
+  }
+
+  .unit {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: clamp(8px, 1.6cqw, 18px) clamp(6px, 1.4cqw, 16px);
+    background:
+      linear-gradient(180deg,
+        rgba(252, 246, 232, 0.97) 0%,
+        rgba(247, 238, 220, 0.97) 100%);
+    border-radius: 6px;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.85) inset,
+      0 -1px 0 rgba(107, 90, 122, 0.06) inset,
+      0 8px 18px rgba(90, 74, 107, 0.16),
+      0 2px 5px rgba(90, 74, 107, 0.12);
+    transform: rotate(-1deg);
+  }
+  .unit:nth-child(2) { transform: rotate(0.8deg); }
+  .unit:nth-child(3) { transform: rotate(-0.7deg); }
+  .unit:nth-child(4) { transform: rotate(1.1deg); }
+
+  .label {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(7px, 1.1cqw, 13px);
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    line-height: 1;
+  }
+
+  .num {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    font-size: clamp(24px, 6.8cqw, 100px);
+    line-height: 0.9;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    will-change: opacity, transform;
+  }
+
+  .num.tick { animation: tick 0.5s ease; }
+
+  @keyframes tick {
+    0%   { opacity: 0;    transform: translateY(-5px); }
+    50%  { opacity: 0.45; transform: translateY(-2px); }
+    100% { opacity: 1;    transform: translateY(0); }
+  }
+
+  /* Phone-specific: position heading + countdown in upper sky area.
+     Phone composition fills bottom ~40% of viewport (sun + hills + foreground),
+     leaving top ~60% as cream sky for heading + countdown. */
+  @media (max-aspect-ratio: 1/1) {
+    .heading {
+      /* Heading near top, with safe space for dynamic island */
+      top: clamp(60px, 12vw, 120px);
+      font-size: clamp(15px, 4cqw, 28px);
+      letter-spacing: 0.18em;
+    }
+    .countdown {
+      /* Position in middle of empty sky area, well above the sun */
+      top: clamp(110px, 22vw, 220px);
+      width: min(86cqw, 720px);
+      gap: clamp(6px, 2cqw, 14px);
+    }
+    .unit {
+      padding: clamp(10px, 2.4cqw, 22px) clamp(6px, 1.8cqw, 16px);
+      gap: 6px;
+    }
+    .label {
+      font-size: clamp(9px, 1.7cqw, 13px);
+    }
+    .num {
+      font-size: clamp(32px, 9cqw, 72px);
+    }
+  }
+
+  /* Very narrow phones */
+  @media (max-width: 380px) {
+    .heading { letter-spacing: 0.12em; }
+  }
+
+  /* ---------- Birthday day ---------- */
+  body.birthday .countdown,
+  body.birthday .heading { display: none; }
+  .happy {
+    display: none;
+    position: absolute;
+    top: clamp(60px, 8cqw, 140px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(28px, 5cqw, 64px);
+    color: var(--ink);
+    letter-spacing: 0.04em;
+    text-align: center;
+    pointer-events: none;
+    user-select: none;
+    width: 90%;
+  }
+  body.birthday .happy { display: block; }
+
+  /* ---------- Signature ---------- */
+  .signature {
+    position: fixed;
+    bottom: 14px;
+    right: 18px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 10px;
+    letter-spacing: 0.36em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    z-index: 30;
+    user-select: none;
+    opacity: 0.5;
+  }
+  .signature::before {
+    content: '✦';
+    font-style: normal;
+    margin-right: 8px;
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============== DESKTOP SCENE ============== -->
+<div class="scene scene-desktop">
+  <div class="layer layer-d-sun"></div>
+  <div class="layer layer-d-midhills"></div>
+  <div class="layer layer-d-midfront"></div>
+
+  <div class="heading">Margot's Birthday Countdown</div>
+  <div class="countdown">
+    <div class="unit"><div class="label">Days</div><div class="num" data-d>00</div></div>
+    <div class="unit"><div class="label">Hours</div><div class="num" data-h>00</div></div>
+    <div class="unit"><div class="label">Minutes</div><div class="num" data-m>00</div></div>
+    <div class="unit"><div class="label">Seconds</div><div class="num" data-s>00</div></div>
+  </div>
+  <div class="happy">Happy Birthday, Margot</div>
+
+  <div class="margot-d"></div>
+  <div class="layer layer-d-foreground"></div>
+</div>
+
+<!-- ============== PHONE SCENE ============== -->
+<div class="scene scene-phone">
+  <div class="layer layer-p-sun"></div>
+  <div class="layer layer-p-midhills"></div>
+  <div class="layer layer-p-midfront"></div>
+
+  <div class="heading">Margot's Birthday Countdown</div>
+  <div class="countdown">
+    <div class="unit"><div class="label">Days</div><div class="num" data-d>00</div></div>
+    <div class="unit"><div class="label">Hours</div><div class="num" data-h>00</div></div>
+    <div class="unit"><div class="label">Minutes</div><div class="num" data-m>00</div></div>
+    <div class="unit"><div class="label">Seconds</div><div class="num" data-s>00</div></div>
+  </div>
+  <div class="happy">Happy Birthday, Margot</div>
+
+  <div class="margot-p"></div>
+  <div class="layer layer-p-foreground"></div>
+</div>
+
+<div class="signature">KLINEKRAFT</div>
+
+<script>
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function nextBirthday() {
+    const now = new Date();
+    const y = now.getFullYear();
+    let bday = new Date(y, 5, 21, 0, 0, 0); // June 21
+    if (now > new Date(y, 5, 21, 23, 59, 59)) bday = new Date(y + 1, 5, 21, 0, 0, 0);
+    return bday;
+  }
+
+  function isBirthdayToday() {
+    const n = new Date();
+    return n.getMonth() === 5 && n.getDate() === 21;
+  }
+
+  // Helper: set value on all elements with given attribute, animate if changed
+  function setNum(attr, val) {
+    const v = pad(val);
+    document.querySelectorAll('[' + attr + ']').forEach(el => {
+      if (el.textContent === v) return;
+      el.textContent = v;
+      el.classList.remove('tick');
+      void el.offsetWidth;
+      el.classList.add('tick');
+    });
+  }
+
+  function tick() {
+    if (isBirthdayToday()) { document.body.classList.add('birthday'); return; }
+    const target = nextBirthday();
+    const diff = target - new Date();
+    if (diff <= 0) { document.body.classList.add('birthday'); return; }
+    setNum('data-d', Math.floor(diff / 86400000));
+    setNum('data-h', Math.floor((diff % 86400000) / 3600000));
+    setNum('data-m', Math.floor((diff % 3600000) / 60000));
+    setNum('data-s', Math.floor((diff % 60000) / 1000));
+  }
+  tick();
+  setInterval(tick, 1000);
+</script>
+
+</body>
+</html>
