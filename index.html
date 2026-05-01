@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Margot's Birthday</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --img-bg:        url('layer-1-background.png');
+    --img-sun:       url('layer-2-sun-clouds.png');
+    --img-midhills:  url('layer-3-midhills.png');
+    --img-midfront:  url('layer-4-midhill-front.png');
+    --img-margot:    url('layer-5-margot.png');
+    --img-foreground:url('layer-6-foreground.png');
+
+    --ink: #6b5a7a;
+    --ink-soft: rgba(107, 90, 122, 0.7);
+    --ink-faint: rgba(107, 90, 122, 0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Pulled from background image's top-left tone for letterbox fill */
+    background: #f1e6d8;
+    font-family: 'Cormorant Garamond', serif;
+    color: var(--ink);
+  }
+
+  /* ---------- Scene + Stage ----------
+     `.scene` is the full viewport.
+     `.stage` is the constrained 16:9 art canvas.
+       - On wide aspect ratios, max-width caps it to 16:9 (letterbox sides).
+       - On narrow/portrait, the stage fills viewport width and we override
+         the 16:9 cap so it grows taller than 16:9 of width.
+     All layers are absolutely positioned INSIDE the stage using
+     percentages-of-stage so proportions are correct at any size. */
+  .scene {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .stage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 100%;
+    width: min(100vw, calc(100vh * 16 / 9));
+    overflow: hidden;
+  }
+
+  .layer {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    background-size: 100% auto;
+    pointer-events: none;
+  }
+
+  /* Background = full stage. Larger background-size to make sure it covers. */
+  .layer-bg {
+    inset: 0;
+    background-image: var(--img-bg);
+    background-position: center center;
+    background-size: cover;
+    z-index: 1;
+  }
+
+  /* Sun + clouds: same dimensions as bg (1920x1053 ≈ 1080). 
+     Bottom-anchored so when it gets cropped on portrait, the sun stays visible. */
+  .layer-sun {
+    inset: 0;
+    background-image: var(--img-sun);
+    background-position: center bottom;
+    background-size: cover;
+    z-index: 2;
+  }
+
+  /* Hills positioned by % of stage height. Original image proportions:
+       midhills:   663/1080 = 61.4%
+       midfront:   386/1080 = 35.7%
+       foreground: 988/1080 = 91.5%
+     Each is bottom-aligned, full width. */
+  .layer-midhills {
+    bottom: 0;
+    height: 61.4%;
+    background-image: var(--img-midhills);
+    background-size: 100% 100%;
+    z-index: 4;
+  }
+
+  .layer-midfront {
+    bottom: 0;
+    height: 35.7%;
+    background-image: var(--img-midfront);
+    background-size: 100% 100%;
+    z-index: 5;
+  }
+
+  .layer-foreground {
+    bottom: 0;
+    height: 91.5%;
+    background-image: var(--img-foreground);
+    background-size: 100% 100%;
+    z-index: 7;
+  }
+
+  /* Margot — sits between midfront (z=5) and foreground (z=7) */
+  .margot-stage {
+    position: absolute;
+    left: 50%;
+    bottom: 7.4%; /* foreground (91.5%) extends to ~91% so margot's lower torso sits in flowers */
+    transform: translateX(-50%);
+    /* Stage is 16:9 (width = height * 16/9). Margot 62% of stage height. */
+    height: 62%;
+    aspect-ratio: 732 / 1034;
+    z-index: 6;
+    pointer-events: none;
+  }
+
+  .margot {
+    position: absolute;
+    inset: 0;
+    background-image: var(--img-margot);
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    background-size: contain;
+    filter: drop-shadow(0 18px 30px rgba(90, 74, 107, 0.18));
+  }
+
+  /* ---------- Countdown ----------
+     z=5 logical: in front of midfront (z=5, ordered after in DOM),
+     behind margot (z=6). DOM order: midfront → countdown → margot.
+     Width is wide enough that the inner units sit just outside her body. */
+  .countdown {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: clamp(12px, 2%, 32px);
+    pointer-events: none;
+    user-select: none;
+    /* Widen so units 2 + 3 clear Margot's body. Stage at 16:9 desktop:
+       Margot is ~30% wide centered. Need inner units around 22% and 78%.
+       width=82% gives positions roughly: 9%, 33%, 67%, 91% — units 2 and 3 land
+       just outside her shoulders */
+    width: 82%;
+    max-width: 1080px;
+  }
+
+  .unit {
+    flex: 1;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .num {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    /* Scale based on stage width (we use vw with cap; stage at 16:9 means
+       vw == stage width on narrow, capped on wide). Tuned to feel ambient. */
+    font-size: clamp(36px, 6.5vw, 88px);
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    will-change: opacity, transform;
+  }
+
+  .num.tick {
+    animation: tick 0.5s ease;
+  }
+
+  @keyframes tick {
+    0%   { opacity: 0;   transform: translateY(-5px); }
+    50%  { opacity: 0.45; transform: translateY(-2px); }
+    100% { opacity: 1;   transform: translateY(0); }
+  }
+
+  .label {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(8px, 0.85vw, 11px);
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  /* ---------- Birthday ---------- */
+  body.birthday .countdown { display: none; }
+  .happy {
+    display: none;
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(28px, 4.5vw, 60px);
+    color: var(--ink);
+    letter-spacing: 0.04em;
+    text-align: center;
+    pointer-events: none;
+    user-select: none;
+    width: 80%;
+  }
+  body.birthday .happy { display: block; }
+
+  /* ---------- Signature ---------- */
+  .signature {
+    position: fixed;
+    bottom: 16px;
+    right: 22px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 11px;
+    letter-spacing: 0.36em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    z-index: 30;
+    user-select: none;
+    opacity: 0.5;
+  }
+  .signature::before {
+    content: '✦';
+    font-style: normal;
+    margin-right: 8px;
+    opacity: 0.7;
+  }
+
+  /* ---------- Mobile / portrait ---------- */
+  @media (max-aspect-ratio: 1/1) {
+    /* On portrait, override the 16:9 cap; let stage fill width */
+    .stage { width: 100vw; max-width: none; height: 100vh; }
+    .num { font-size: clamp(28px, 9vw, 48px); }
+    .label { font-size: clamp(7px, 1.6vw, 10px); letter-spacing: 0.28em; }
+  }
+
+  @media (max-width: 640px) {
+    .countdown { width: 84%; gap: 8px; top: 32%; }
+    .signature { font-size: 9px; }
+  }
+
+  /* Very tall portrait — pull countdown up toward sun */
+  @media (max-aspect-ratio: 4/5) {
+    .countdown { top: 28%; width: 86%; }
+    .margot-stage { height: 50%; bottom: 14%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="scene">
+  <div class="stage">
+    <div class="layer layer-bg"></div>
+    <div class="layer layer-sun"></div>
+    <div class="layer layer-midhills"></div>
+    <div class="layer layer-midfront"></div>
+
+    <div class="countdown" id="countdown">
+      <div class="unit">
+        <div class="num" id="d">00</div>
+        <div class="label">Days</div>
+      </div>
+      <div class="unit">
+        <div class="num" id="h">00</div>
+        <div class="label">Hours</div>
+      </div>
+      <div class="unit">
+        <div class="num" id="m">00</div>
+        <div class="label">Minutes</div>
+      </div>
+      <div class="unit">
+        <div class="num" id="s">00</div>
+        <div class="label">Seconds</div>
+      </div>
+    </div>
+
+    <div class="happy">Happy Birthday, Margot</div>
+
+    <div class="margot-stage">
+      <div class="margot"></div>
+    </div>
+
+    <div class="layer layer-foreground"></div>
+  </div>
+</div>
+
+<div class="signature">KLINEKRAFT</div>
+
+<script>
+  const dEl = document.getElementById('d');
+  const hEl = document.getElementById('h');
+  const mEl = document.getElementById('m');
+  const sEl = document.getElementById('s');
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function nextBirthday() {
+    const now = new Date();
+    const y = now.getFullYear();
+    let bday = new Date(y, 5, 21, 0, 0, 0);
+    if (now > new Date(y, 5, 21, 23, 59, 59)) bday = new Date(y + 1, 5, 21, 0, 0, 0);
+    return bday;
+  }
+
+  function isBirthdayToday() {
+    const n = new Date();
+    return n.getMonth() === 5 && n.getDate() === 21;
+  }
+
+  function setNum(el, val) {
+    const v = pad(val);
+    if (el.textContent === v) return;
+    el.textContent = v;
+    el.classList.remove('tick');
+    void el.offsetWidth;
+    el.classList.add('tick');
+  }
+
+  function tick() {
+    if (isBirthdayToday()) {
+      document.body.classList.add('birthday');
+      return;
+    }
+    const target = nextBirthday();
+    const diff = target - new Date();
+    if (diff <= 0) { document.body.classList.add('birthday'); return; }
+    setNum(dEl, Math.floor(diff / 86400000));
+    setNum(hEl, Math.floor((diff % 86400000) / 3600000));
+    setNum(mEl, Math.floor((diff % 3600000) / 60000));
+    setNum(sEl, Math.floor((diff % 60000) / 1000));
+  }
+  tick();
+  setInterval(tick, 1000);
+</script>
+
+</body>
+</html>
