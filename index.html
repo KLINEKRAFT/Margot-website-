@@ -161,15 +161,15 @@
     <div class="invite reveal" id="invite">
       <div class="invite__scrim" id="scrim"></div>
       <div class="invite__inner">
-        <span class="mono kick det" data-a=".46" data-b=".56">You're invited</span>
-        <div class="name det" data-a=".53" data-b=".65">Margot is turning five</div>
-        <div class="when serif det" data-a=".62" data-b=".72">Saturday, June 20</div>
-        <div class="time mono det" data-a=".67" data-b=".77">11:00 AM &ndash; 1:00 PM</div>
-        <div class="where det" data-a=".73" data-b=".84">The Kline Residence
+        <span class="mono kick det" data-a=".60" data-b=".67">You're invited</span>
+        <div class="name det" data-a=".64" data-b=".72">Margot is turning five</div>
+        <div class="when serif det" data-a=".70" data-b=".78">Saturday, June 20</div>
+        <div class="time mono det" data-a=".74" data-b=".82">11:00 AM &ndash; 1:00 PM</div>
+        <div class="where det" data-a=".79" data-b=".87">The Kline Residence
           <span>5526 S Toledo Place &middot; Tulsa, Oklahoma 74135</span>
         </div>
-        <a class="dir det" data-a=".82" data-b=".90" href="https://www.google.com/maps/dir/?api=1&destination=5526%20S%20Toledo%20Place%2C%20Tulsa%2C%20OK%2074135" target="_blank" rel="noopener">Get directions</a>
-        <div class="rsvpcue mono det" data-a=".88" data-b=".96">Scroll to RSVP</div>
+        <a class="dir det" data-a=".85" data-b=".92" href="https://www.google.com/maps/dir/?api=1&destination=5526%20S%20Toledo%20Place%2C%20Tulsa%2C%20OK%2074135" target="_blank" rel="noopener">Get directions</a>
+        <div class="rsvpcue mono det" data-a=".91" data-b=".97">Scroll to RSVP</div>
       </div>
     </div>
   </div>
@@ -232,7 +232,9 @@
        coarse pointers also seek the decoder a little less aggressively. */
     var mq = window.matchMedia('(pointer:coarse)');
     var isTouch = mq.matches || window.innerWidth < 768;
-    var SCRUB_END = isTouch ? 0.58 : 0.66;   /* fraction of scroll spent travelling the film */
+    /* The whole film plays out within this fraction of the scroll, BEFORE any
+       detail or scrim appears — so you always watch the full 12s clean first. */
+    var SCRUB_END = isTouch ? 0.56 : 0.58;
     var EASE = isTouch ? 0.16 : 0.12;        /* playback smoothing */
 
     /* choreography: each detail line flows in over its own scroll window,
@@ -287,8 +289,8 @@
       title.style.opacity = t;
       title.style.transform = 'translateY(' + (-prog * 40) + 'px)';
 
-      /* darken the held frame so the details stay legible */
-      scrim.style.opacity = String(seg(prog, 0.42, 0.62));
+      /* once the film has fully played, darken the held frame for legibility */
+      scrim.style.opacity = String(seg(prog, SCRUB_END, SCRUB_END + 0.10));
 
       /* line-by-line arrival of the details */
       var anyVisible = false;
@@ -301,8 +303,9 @@
       }
       invite.style.pointerEvents = anyVisible ? 'auto' : 'none';
 
-      /* gentle continued push-in on the held frame */
-      var push = seg(prog, 0.45, 1);
+      /* gentle push-in only after the film has fully played, so nothing of
+         the clip is ever cropped while it's still scrubbing */
+      var push = seg(prog, SCRUB_END, 1);
       film.style.transform = 'scale(' + (1 + push * 0.06) + ')';
     }
 
