@@ -72,11 +72,12 @@
   html.fallback .pin{position:relative;height:100svh}
 
   .film{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;will-change:transform;
-    background:radial-gradient(120% 90% at 50% 38%, #2a131b 0%, #11070b 70%);transform:translateZ(0)}
+    background:#11070b url("poster.webp") center/cover no-repeat;transform:translateZ(0)}
 
-  /* opening title-card: black holds, then lifts to reveal the film behind the words */
-  .openveil{position:absolute;inset:0;z-index:2;background:#11070b;pointer-events:none;
+  /* opening title-card: a poster image holds, then lifts to reveal the film behind the words */
+  .openveil{position:absolute;inset:0;z-index:2;background:#11070b url("poster.webp") center/cover no-repeat;pointer-events:none;
     opacity:1;animation:openfade 1.9s cubic-bezier(.4,0,.2,1) 1.1s forwards}
+  .openveil::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(20,8,12,.35),rgba(20,8,12,.55))}
   @keyframes openfade{to{opacity:0}}
 
   /* opening title */
@@ -173,7 +174,7 @@
 <section class="stage" id="stage">
   <div class="pin">
     <!-- Drop the rendered Higgsfield clip in the repo as margot.mp4 (next to this file). -->
-    <video class="film" id="film" src="margot.mp4" muted playsinline webkit-playsinline preload="auto" loop></video>
+    <video class="film" id="film" src="margot.mp4" poster="poster.webp" muted playsinline webkit-playsinline preload="auto" loop></video>
 
     <!-- held black title-card; the film fades up behind the words -->
     <div class="openveil" id="openveil"></div>
