@@ -30,10 +30,14 @@
   /* Decide the experience before first paint to avoid any flash.
      Scrub-on-scroll runs everywhere (phones included) — we only fall
      back to a plain played-through film when the visitor has asked for
-     reduced motion. */
+     reduced motion. Once the party is over (Sat Jun 20 2026, 1:00 PM
+     Tulsa = 18:00 UTC) the page quietly drops the invitation + RSVP and
+     keeps only the film with a small thank-you. */
   (function(){
     var ok = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    document.documentElement.className = ok ? 'scrub' : 'fallback';
+    var cls = ok ? 'scrub' : 'fallback';
+    if(Date.now() >= Date.UTC(2026,5,20,18,0,0)) cls += ' after';
+    document.documentElement.className = cls;
   })();
 </script>
 <style>
@@ -164,6 +168,18 @@
   .kk{font-family:"IBM Plex Mono",monospace;letter-spacing:.5em;font-size:.62rem;text-transform:uppercase;color:var(--forest);opacity:.32}
   footer .yr{display:block;margin-top:12px;font-family:"Cormorant Garamond",serif;font-style:italic;color:var(--ink-soft);font-size:.9rem;opacity:.8}
 
+  /* ---------- AFTER THE PARTY (auto, once the date passes) ---------- */
+  .thanks{position:absolute;left:0;right:0;bottom:calc(8svh + env(safe-area-inset-bottom));z-index:5;opacity:0;
+    display:none;flex-direction:column;align-items:center;text-align:center;padding:0 26px;color:#fff;pointer-events:none}
+  .thanks__veil{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:140%;height:340%;z-index:-1;
+    background:radial-gradient(60% 60% at 50% 50%, rgba(20,8,12,.6), transparent 75%)}
+  .thanks .mono{color:#ffe9ef;opacity:.85;margin-bottom:.7em;font-size:.58rem}
+  .thanks p{font-style:italic;font-weight:500;font-size:clamp(1.5rem,5.5vw,2.4rem);line-height:1.15;text-shadow:0 10px 40px rgba(20,8,12,.7)}
+  /* after-party: keep only the film + thank-you; drop invitation, RSVP, footer, chrome */
+  html.after .thanks{display:flex;animation:fade 1.4s ease 1s both}
+  html.after .title,html.after .invite,html.after .scrollcue,html.after .progress,
+  html.after .rsvp,html.after footer{display:none}
+
   @media(prefers-reduced-motion:reduce){.reveal{transition:none;opacity:1;transform:none}*{animation:none!important}
     .openveil{display:none}.title .mono,.title h1{opacity:1}}
 </style>
@@ -180,6 +196,13 @@
 
     <!-- held black title-card; the film fades up behind the words -->
     <div class="openveil" id="openveil"></div>
+
+    <!-- shown only after the party is over (see html.after) -->
+    <div class="thanks">
+      <div class="thanks__veil"></div>
+      <span class="mono">Margot &middot; June 20, 2026</span>
+      <p class="serif">Thank you for celebrating with us</p>
+    </div>
 
     <div class="title" id="title">
       <div class="title__veil"></div>
